@@ -1,10 +1,8 @@
 package com.appdiev.ApiRest.services;
 
 import com.appdiev.ApiRest.dto.role.RoleDTO;
-import com.appdiev.ApiRest.dto.user.CreateUserRequest;
-import com.appdiev.ApiRest.dto.user.CreateUserResponse;
-import com.appdiev.ApiRest.dto.user.LoginRequest;
-import com.appdiev.ApiRest.dto.user.LoginResponse;
+import com.appdiev.ApiRest.dto.user.*;
+import com.appdiev.ApiRest.dto.user.mapper.UserMapper;
 import com.appdiev.ApiRest.models.Role;
 import com.appdiev.ApiRest.models.User;
 import com.appdiev.ApiRest.models.UserHasRoles;
@@ -17,6 +15,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 @Service
@@ -37,9 +39,12 @@ public class UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UserMapper userMapper;
+
 
     @Transactional
-    public CreateUserResponse create(CreateUserRequest request) {
+    public LoginResponse create(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.email)) {
             throw new RuntimeException("correo ya registrado");
         }
@@ -60,22 +65,17 @@ public class UserService {
     UserHasRoles userHasRoles = new UserHasRoles(savedUser, clientRole);
     userHasRolesRespository.save(userHasRoles);
 
-    CreateUserResponse response = new CreateUserResponse();
-    response.setId(savedUser.getId());
-    response.setName(savedUser.getName());
-    response.setLastname(savedUser.getLastname());
-    response.setEmail(savedUser.getEmail());
-    response.setPhone(savedUser.getPhone());
-    response.setImage(savedUser.getImage());
+    String token = jwtUtil.generateToken(user);
 
     List<Role> roles = roleRepository.findAllByUsersHasRoles_User_Id(savedUser.getId());
-    List<RoleDTO> rolesDTOS = roles.stream()
-                    .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(),role.getRoute()))
-                            .toList();
 
-    response.setRoles(rolesDTOS);
+    LoginResponse response = new LoginResponse();
+    response.setToken("Bearer " + token);
+    response.setUser(userMapper.toUserResponse(user,roles));
 
     return response;
+
+
     }
 
     @Transactional
@@ -89,22 +89,10 @@ public class UserService {
 
         String token = jwtUtil.generateToken(user);
         List<Role> roles = roleRepository.findAllByUsersHasRoles_User_Id(user.getId());
-        List<RoleDTO> rolesDTOS = roles.stream()
-                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(),role.getRoute()))
-                .toList();
-
-        CreateUserResponse createUserResponse = new CreateUserResponse();
-        createUserResponse.setId(user.getId());
-        createUserResponse.setName(user.getName());
-        createUserResponse.setLastname(user.getLastname());
-        createUserResponse.setEmail(user.getEmail());
-        createUserResponse.setPhone(user.getPhone());
-        createUserResponse.setImage(user.getImage());
-        createUserResponse.setRoles(rolesDTOS);
 
         LoginResponse response = new LoginResponse();
         response.setToken("Bearer " + token);
-        response.setUser(createUserResponse);
+        response.setUser(userMapper.toUserResponse(user,roles));
 
         return response;
 
@@ -113,27 +101,71 @@ public class UserService {
 
 
     @Transactional
-    public CreateUserResponse findById(Long id) {
+    public UserResponse findById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("email no valido"));
 
         List<Role> roles = roleRepository.findAllByUsersHasRoles_User_Id(user.getId());
-        List<RoleDTO> rolesDTOS = roles.stream()
-                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
-                .toList();
 
-        CreateUserResponse createUserResponse = new CreateUserResponse();
-        createUserResponse.setId(user.getId());
-        createUserResponse.setName(user.getName());
-        createUserResponse.setLastname(user.getLastname());
-        createUserResponse.setEmail(user.getEmail());
-        createUserResponse.setPhone(user.getPhone());
-        createUserResponse.setImage(user.getImage());
-        createUserResponse.setRoles(rolesDTOS);
-
-        return createUserResponse;
+        return userMapper.toUserResponse(user,roles);
 
     }
+
+    //esto pa actualizar
+    @Transactional
+    public UserResponse update(Long id, UpdateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("usuario no encontrado"));
+
+        if (request.getName() != null) user.setName(request.getName());
+        if (request.getLastname() != null) user.setLastname(request.getLastname());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+
+        userRepository.save(user);
+
+        List<Role> roles = roleRepository.findAllByUsersHasRoles_User_Id(user.getId());
+        return userMapper.toUserResponse(user, roles);
+    }
+
+
+
+    //-------------------------------------------------------------------------------
+    @Transactional
+    public UserResponse updateUserImage(Long id, UpdateUserRequest request) throws IOException {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("email no valido"));
+
+        //logica
+        if (request.getName() != null){
+            user.setName(request.getName());
+        }
+        if (request.getLastname() != null){
+            user.setLastname(request.getLastname());
+        }
+        if (request.getPhone() != null){
+            user.setPhone(request.getPhone());
+        }
+
+        if(request.getFile() != null && !request.getFile().isEmpty()){
+            String uploadDir = "uploads/users/" + user.getId();
+            String filename = request.getFile().getOriginalFilename();
+            String filepath = Paths.get(uploadDir,filename).toString();
+
+            Files.createDirectories(Paths.get(uploadDir));
+            Files.copy(request.getFile().getInputStream(), Paths.get(filepath), StandardCopyOption.REPLACE_EXISTING);
+            user.setImage("/" + filepath.replace("\\","/"));
+        }
+
+        userRepository.save(user);
+
+
+
+        List<Role> roles = roleRepository.findAllByUsersHasRoles_User_Id(user.getId());
+
+        return userMapper.toUserResponse(user,roles);
+
+    }
+
 
 }
 

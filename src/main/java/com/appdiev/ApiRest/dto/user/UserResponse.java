@@ -8,7 +8,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class CreateUserResponse {
+public class UserResponse {
     public Long id;
     public String name;
     public String lastname;

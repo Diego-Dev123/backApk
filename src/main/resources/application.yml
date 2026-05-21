@@ -1,3 +1,10 @@
+server:
+  port: 3000
+  address: 192.168.56.1
+
+
+
+
 spring:
   application:
     name: ApiRest
