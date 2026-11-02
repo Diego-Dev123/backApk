@@ -21,7 +21,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 
-@Service
+@Service //hola
 public class UserService {
 
     @Autowired
@@ -167,6 +167,8 @@ public class UserService {
     }
 
 
+    public void delete(Long id) {
+    }
 }
 
 

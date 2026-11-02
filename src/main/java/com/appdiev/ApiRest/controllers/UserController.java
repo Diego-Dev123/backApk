@@ -79,7 +79,7 @@ public class UserController {
     }
 
 
-
+    //actualizar
     @PutMapping("/update/{id}")
     public ResponseEntity<?> update(
             @PathVariable Long id,
@@ -87,6 +87,19 @@ public class UserController {
         try {
             UserResponse response = userService.update(id, request); // sin imagen
             return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "message", e.getMessage(),
+                    "status", HttpStatus.NOT_FOUND.value()
+            ));
+        }
+    }
+    //eliminar
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        try {
+            userService.delete(id);
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                     "message", e.getMessage(),
