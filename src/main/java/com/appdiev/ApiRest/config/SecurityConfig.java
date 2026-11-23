@@ -27,6 +27,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers( "/auth/**", "/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/products/*", "/categories/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/products/trash", "/categories/trash").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/products/*/restore", "/categories/*/restore").hasRole("ADMIN")
                         .anyRequest().authenticated()
                         )
                 .exceptionHandling(ex -> ex

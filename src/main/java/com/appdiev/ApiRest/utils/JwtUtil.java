@@ -4,6 +4,7 @@ package com.appdiev.ApiRest.utils;
 import com.appdiev.ApiRest.models.User;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import io.jsonwebtoken.*;
 
@@ -15,10 +16,11 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final SecretKey key = Keys.hmacShaKeyFor(
-            "3a0a59a0fb55cd6daef5b7c099712c1ea6c4b70b2d500333ded741a0e46075c3"
-                    .getBytes(StandardCharsets.UTF_8)
-    );
+    private final SecretKey key;
+
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
 
     public Claims getClaims(String token){
         return Jwts.parser()

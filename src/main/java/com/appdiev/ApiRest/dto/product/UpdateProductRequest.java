@@ -10,4 +10,5 @@ public class UpdateProductRequest {
     private String description;
     private Double price;
     private MultipartFile[] files;
+    private Integer[] imageToUpdate;
 }

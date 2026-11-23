@@ -1,6 +1,5 @@
 package com.appdiev.ApiRest.services;
 
-
 import com.appdiev.ApiRest.dto.category.CategoryRespone;
 import com.appdiev.ApiRest.dto.category.CreateCategoryRequest;
 import com.appdiev.ApiRest.dto.category.mapper.CategoryMapper;
@@ -15,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -51,65 +51,54 @@ public class CategoryService {
     //listar categorias
     @Transactional
     public List<CategoryRespone> findAll(){
-        List<Category> categories = categoryRepository.findAll();
+        List<Category> categories = categoryRepository.findByDeletedAtIsNull();
         return categories.stream().map(category -> {
             return categoryMapper.toCategoryRespone(category);
         }).toList();
     }
 
     //eliminar categorias
+    @Transactional
     public void delete(Long id){
-        Category category = categoryRepository.findById(id).orElseThrow(
+        Category category = categoryRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(
             () -> new RuntimeException("La categoria no existe")
         );
 
-        categoryRepository.delete(category);
+        // borrado lógico: los productos quedan ocultos por la relación, sin marcarse
+        category.setDeletedAt(LocalDateTime.now());
+        categoryRepository.save(category);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryRespone> findTrash(){
+        return categoryRepository.findByDeletedAtIsNotNullOrderByDeletedAtDesc()
+                .stream().map(categoryMapper::toCategoryRespone).toList();
+    }
+
+    @Transactional
+    public CategoryRespone restore(Long id){
+        Category category = categoryRepository.findByIdAndDeletedAtIsNotNull(id).orElseThrow(
+            () -> new RuntimeException("La categoria no existe en la papelera")
+        );
+        category.setDeletedAt(null);
+        return categoryMapper.toCategoryRespone(categoryRepository.save(category));
     }
 //
 //    //actualizar
-//    @Transactional
-//    public CategoryRespone update(Long id,CreateCategoryRequest request) throws IOException {
-//
-//        Category category = categoryRepository.findById(id).orElseThrow(
-//                () -> new RuntimeException("La categoria no existe")
-//        );
 //
 //
-//        category.setName(request.getName());
-//        category.setDescription(request.getDescription());
 //
-//        if(request.getFile() != null && !request.getFile().isEmpty()){
+//
 //
 //            //saber si existe una imagen
-//            if(category.getImage() != null){
-//                Path previusImagePath = Paths.get("." + category.getImage());
-//                if(Files.exists(previusImagePath)){
-//                    Files.delete(previusImagePath);
-//                }
-//            }
 //
-//            String uploadDIr = "uploads/categories/" + category.getId();
-//            String fileName = request.getFile().getOriginalFilename();
-//            String filepath = Paths.get(uploadDIr, fileName).toString();
 //
-//            Files.createDirectories(Paths.get(uploadDIr));
-//            Files.copy(request.getFile().getInputStream(), Paths.get(filepath), StandardCopyOption.REPLACE_EXISTING);
-//            category.setImage("/" + filepath.replace("\\", "/"));
 //
-//        }
-//        Category updatedCategory= categoryRepository.save(category);
-//        return categoryMapper.toCategoryRespone(updatedCategory);
-//    }
-
-
-
-
 
     //claude
-    // Solo actualizar datos (sin imagen)
     @Transactional
     public CategoryRespone update(Long id, CreateCategoryRequest request) {
-        Category category = categoryRepository.findById(id).orElseThrow(
+        Category category = categoryRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(
                 () -> new RuntimeException("La categoria no existe")
         );
 
@@ -123,7 +112,7 @@ public class CategoryService {
     // Actualizar con imagen
     @Transactional
     public CategoryRespone updateWithImage(Long id, CreateCategoryRequest request) throws IOException {
-        Category category = categoryRepository.findById(id).orElseThrow(
+        Category category = categoryRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(
                 () -> new RuntimeException("La categoria no existe")
         );
 
@@ -148,8 +137,5 @@ public class CategoryService {
         Category updatedCategory = categoryRepository.save(category);
         return categoryMapper.toCategoryRespone(updatedCategory);
     }
-
-
-
 
 }

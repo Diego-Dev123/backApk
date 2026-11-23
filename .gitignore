@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secrets / local ###
+src/main/resources/application.yml
+application-*.yml
+.env
+*.env
+uploads/
+.claude/

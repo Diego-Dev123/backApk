@@ -46,6 +46,9 @@ public class Product {
 
 
 
+    @Column(name = "deleted_at", nullable = true)
+    private LocalDateTime deletedAt;
+
     @PreUpdate
     public void onUpdate(){
         this.updateAT = LocalDateTime.now();

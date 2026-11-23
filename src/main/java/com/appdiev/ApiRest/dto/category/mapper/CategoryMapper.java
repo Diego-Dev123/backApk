@@ -16,6 +16,9 @@ public class CategoryMapper {
         respone.setDescription(category.getDescription());
         respone.setCreatedAt(category.getCreatedAT());
         respone.setUpdatedAt(category.getUpdateAT());
+        if (category.getDeletedAt() != null) {
+            respone.setDeletedAt(category.getDeletedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime());
+        }
         if(category.getImage() != null){
             String imageUrl = APIConfig.BASE_URL + category.getImage();
             respone.setImage(imageUrl);

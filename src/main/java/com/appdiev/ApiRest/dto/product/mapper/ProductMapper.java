@@ -19,6 +19,9 @@ public class ProductMapper {
         response.setCreatedAt(product.getCreatedAT());
         response.setUpdatedAt(product.getUpdateAT());
         response.setIdCategory(product.getCategory().getId());
+        if (product.getDeletedAt() != null) {
+            response.setDeletedAt(product.getDeletedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime());
+        }
 
         if (product.getImage1() != null){
             response.setImage1(APIConfig.BASE_URL + product.getImage1());

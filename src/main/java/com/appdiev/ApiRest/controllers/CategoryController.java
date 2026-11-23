@@ -99,9 +99,23 @@ public class CategoryController {
         }
     }
 
+    //papelera
+    @GetMapping("/trash")
+    public ResponseEntity<?> trash(){
+        return ResponseEntity.ok(categoryService.findTrash());
+    }
 
-
-
-
+    //restaurar
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restore(@PathVariable Long id){
+        try {
+            return ResponseEntity.ok(categoryService.restore(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "statusCode", HttpStatus.NOT_FOUND.value(),
+                    "message", e.getMessage()
+            ));
+        }
+    }
 
 }
